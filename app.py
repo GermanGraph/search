@@ -35,7 +35,7 @@ async def search(request):
         is_dubbing_using = True
 
         for phrase in phrases:
-            predicates.append(f"d.text ILIKE '%{phrase}%'")
+            predicates.append(f"d.text ILIKE '%%{phrase}%%'")
     else:
         is_dubbing_using = False
 
@@ -102,17 +102,15 @@ async def search(request):
     )
 
     print(query)
-    res = [r for r in db.execute_sql(query).fetchall()]
-    print('!!!', res)
-    # res = [
-    #     {
-    #         'video_id': row[0],
-    #         'start': row[1],
-    #         'finish': row[2]
-    #     } for row in res
-    # ]
+    res = [
+        {
+            'video_id': row[0],
+            'start': row[1],
+            'finish': row[2]
+        } for row in db.execute_sql(query).fetchall()
+    ]
 
-    return 'ok'
+    return res
 
 api = mrrest.RESTApi(
     '0.0.0.0',
