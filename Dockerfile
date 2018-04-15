@@ -19,6 +19,6 @@ RUN apt-get install git && pip install --no-cache-dir \
     peewee
 
 COPY app.py ./app.py
-COPY prod_db.py ./db.py
+COPY prod_db.py ./prod_db.py
 
 ENTRYPOINT ["python", "app.py"]
