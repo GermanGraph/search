@@ -3,7 +3,7 @@ import mrrest
 from aiohttp import web
 from datetime import datetime
 
-from db import db
+from prod_db import db
 
 
 async def search(request):
@@ -12,6 +12,7 @@ async def search(request):
     try:
         faces = list(set(x.strip().lower() for x in query.get('faces', '').split(',') if x.strip()))
         logos = list(set(x.strip().lower() for x in query.get('logos', '').split(',') if x.strip()))
+        items = list(set(x.strip().lower() for x in query.get('items', '').split(',') if x.strip()))
 
         phrases = list(set(x.strip().lower() for x in query.get('phrases', '').split(',') if x.strip()))
 
@@ -20,14 +21,17 @@ async def search(request):
         raise web.HTTPBadRequest(text=str(err).strip('"'))
 
     predicates = []
-    if faces or logos:
+    if any((faces, logos, items)):
         is_feature_using = True
 
         for face in faces:
-            predicates.append(f"f.image = 'face' AND f.info -> 'name' = '{face}'")
+            predicates.append(f"f.image = 'face' AND lower(f.info -> 'name') = '{face}'")
 
         for logo in logos:
-            predicates.append(f"f.image='logo' AND f.info -> 'name' = '{logo}'")
+            predicates.append(f"f.image='logo' AND lower(f.info -> 'name') = '{logo}'")
+
+        for item in items:
+            predicates.append(f"f.image='object' AND lower(f.info -> 'name') = '{item}'")
     else:
         is_feature_using = False
 
@@ -88,14 +92,21 @@ async def search(request):
         raise web.HTTPBadRequest(text='no goals for search')
 
     query = """
-    SELECT
-        video_id,
-        min(start) as start,
-        min(finish) as finish
-    FROM ( {sbuq} ) t
-    WHERE weight > 0
-    GROUP BY video_id
-    ORDER BY count(video_id) DESC, sum(weight)/count(video_id) DESC
+    SELECT * FROM (
+        SELECT
+            DISTINCT ON (video_id, start/50)
+            video_id,
+            -- min(start) as start,
+            -- min(finish) as finish
+            start as start,
+            finish as finish,
+            weight as weight
+        FROM ( {sbuq} ) t
+        WHERE weight > 0
+        -- GROUP BY video_id
+        -- ORDER BY count(video_id) DESC, sum(weight)/count(video_id) DESC
+    ) tt
+    ORDER BY weight
     """.format(sbuq=search_query).format(
         d=10,
         predicates=', '.join(predicates)
@@ -105,8 +116,9 @@ async def search(request):
     res = [
         {
             'video_id': row[0],
-            'start': row[1],
-            'finish': row[2]
+            # 'start_frame': row[1],
+            # 'finish_frame': row[2],
+            'time': '{}m {}s'.format(*divmod(int(row[1]/10), 60))
         } for row in db.execute_sql(query).fetchall()
     ]
 
