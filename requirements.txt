@@ -1,0 +1,15 @@
+aiodns==1.1.1
+aiohttp==2.3.2
+aiohttp-cors==0.5.3
+async-timeout==2.0.1
+asyncpg==0.15.0
+attrs==17.4.0
+cchardet==2.1.1
+chardet==3.0.4
+idna==2.6
+idna-ssl==1.0.1
+git+http://test:testtesttest@37.46.129.197:10080/i2rdt/MrRest.git
+multidict==4.1.0
+pycares==2.3.0
+typing==3.6.4
+yarl==0.18.0
